@@ -22,11 +22,11 @@ protected:
     Vehicle(Vehicle &&) = default;
     Vehicle &operator=(Vehicle const &) = default;
     Vehicle &operator=(Vehicle &&) = default;
-    explicit Vehicle(std::string const &company, std::string const &model, std::string const &product_id = "null") noexcept
+    Vehicle(std::string const &company, std::string const &model, std::string const &product_id = "null") 
         : m_company(company), m_model(model), m_identity({company, model}), m_product_id(product_id){};
-    explicit Vehicle(Identifier const &model_id) noexcept
+    explicit Vehicle(Identifier const &model_id) 
         : m_company(model_id.first), m_model(model_id.second), m_identity(model_id){};
-    explicit Vehicle(std::istream &ifile) noexcept
+    Vehicle(std::istream &ifile) 
     {
         size_t size;
         ifile.read((char *)&size, sizeof(size_t));
@@ -119,11 +119,11 @@ protected:
         m_catalouge = std::move(cat);
         cat.~map();
     };
-    explicit Catalouge(std::map<Company, IdentityHash> const &cat) noexcept
+    explicit Catalouge(std::map<Company, IdentityHash> const &cat) 
     {
         m_catalouge = cat;
     };
-    explicit Catalouge(std::initializer_list<Identifier> cat_list) noexcept
+    Catalouge(std::initializer_list<Identifier> cat_list) 
     {
         for (auto &it : cat_list)
             add_to_catalouge(it);
