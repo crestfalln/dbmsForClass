@@ -54,11 +54,11 @@ protected:
     Vehicle() = delete;
     Vehicle(Vehicle const &) = default;
     Vehicle(Vehicle &&) = default;
-    explicit Vehicle(std::string const &company, std::string const &model, std::string const &product_id = "null") 
+    Vehicle(std::string const &company, std::string const &model, std::string const &product_id = "null") 
         : m_company(company), m_model(model), m_identity({m_model, m_company}), m_product_id(product_id){};
     explicit Vehicle(Identifier const &model_id) 
         : m_company(model_id.first), m_model(model_id.second), m_identity(model_id){};
-    explicit Vehicle(std::ifstream &ifile) noexcept //Deserialization - Archive read 
+    Vehicle(std::ifstream &ifile) noexcept //Deserialization - Archive read 
         : m_company(std::move(string_read(ifile))) , m_model(std::move(string_read(ifile))) ,  m_identity({m_company , m_model}) , m_product_id(std::move(string_read(ifile))) {};
 
 public: //Public destructor because protected did not work with shared-pointer(some one look into it)
@@ -122,11 +122,11 @@ protected:
         m_catalouge = std::move(cat);
         cat.~map();
     };
-    explicit Catalouge(std::map<Company, IdentityHash> const &cat) noexcept
+    explicit Catalouge(std::map<Company, IdentityHash> const &cat) 
     {
         m_catalouge = cat;
     };
-    explicit Catalouge(std::initializer_list<Identifier> cat_list) noexcept
+    Catalouge(std::initializer_list<Identifier> cat_list) 
     {
         for (auto &it : cat_list)
             add_to_catalouge(it);
