@@ -4,61 +4,64 @@
 #include <iostream>
 #include <vector>
 
-class Vehicle
+class Vehicle //Protected Class Never to be used outside class DBMS or class Catalouge
 {
 protected:
+//Friends 
     friend class Catalouge;
     friend class DBMS;
-    friend class std::shared_ptr<Vehicle>;
+
+//Some useful aliases used extensively throughout the program
     using Company = std::string;
     using Model = std::string;
     using Identifier = std::pair<Company, Model>;
+
+//Main identifing Vars 
     Company m_company;
     Model m_model;
     Identifier m_identity;
     std::string m_product_id = "null";
+
+//Operators
+    Vehicle &operator=(Vehicle const &) = default;
+    Vehicle &operator=(Vehicle &&) = default;
+
+//Serialization-deserialization functions 
+    std::string string_read(std::ifstream &ifile) // Deserialization helper function
+    {
+        size_t size;
+        std::string str;
+        ifile.read((char *)&size, sizeof(size_t));
+        str.resize(size);
+        ifile.read(str.data(), size);
+        return str;
+    }
+    void string_write(std::ofstream &ofile, std::string const &str) // Serialization helper function
+    {
+        size_t size = str.size();
+        ofile.write((char *)&size, sizeof(size_t));
+        ofile.write(str.data(), size);
+    }
+    std::ofstream &dump_to_disk(std::ofstream &ofile) //Deserailization - Archive write
+    {
+        string_write(ofile , m_company);
+        string_write(ofile , m_model);
+        string_write(ofile , m_product_id);
+        return ofile;
+    }
+
+//Constructors
     Vehicle() = delete;
     Vehicle(Vehicle const &) = default;
     Vehicle(Vehicle &&) = default;
-    Vehicle &operator=(Vehicle const &) = default;
-    Vehicle &operator=(Vehicle &&) = default;
     Vehicle(std::string const &company, std::string const &model, std::string const &product_id = "null") 
-        : m_company(company), m_model(model), m_identity({company, model}), m_product_id(product_id){};
+        : m_company(company), m_model(model), m_identity({m_model, m_company}), m_product_id(product_id){};
     explicit Vehicle(Identifier const &model_id) 
         : m_company(model_id.first), m_model(model_id.second), m_identity(model_id){};
-    Vehicle(std::istream &ifile) 
-    {
-        size_t size;
-        ifile.read((char *)&size, sizeof(size_t));
-        m_company.resize(size);
-        ifile.read(m_company.data(), size);
-        ifile.read((char *)&size, sizeof(size_t));
-        m_model.resize(size);
-        ifile.read(m_model.data(), size);
+    Vehicle(std::ifstream &ifile) noexcept //Deserialization - Archive read 
+        : m_company(std::move(string_read(ifile))) , m_model(std::move(string_read(ifile))) ,  m_identity({m_company , m_model}) , m_product_id(std::move(string_read(ifile))) {};
 
-        ifile.read((char *)&size, sizeof(size_t));
-        m_product_id.resize(size);
-        ifile.read(m_product_id.data(), size);
-
-        m_identity = std::move(Identifier{m_company, m_model});
-    }
-    std::ofstream &dump_to_disk(std::ofstream &ofile)
-    {
-        size_t tmp = m_company.size();
-        ofile.write((char *)&tmp, sizeof(size_t));
-        ofile.write(m_company.data(), tmp);
-
-        tmp = m_model.size();
-        ofile.write((char *)&tmp, sizeof(size_t));
-        ofile.write(m_model.data(), tmp);
-
-        tmp = m_product_id.size();
-        ofile.write((char *)&tmp, sizeof(size_t));
-        ofile.write(m_product_id.data(), tmp);
-
-        return ofile;
-    }
-public:
+public: //Public destructor because protected did not work with shared-pointer(some one look into it)
     ~Vehicle() = default;
 };
 
@@ -141,8 +144,10 @@ class DBMS
     using Identifier = Vehicle::Identifier;
     using IdentityHash = Catalouge::IdentityHash;
     using VehiclePtr = std::shared_ptr<Vehicle>;
+    using IndexStr = std::map<std::string, VehiclePtr>;
     Catalouge m_cat;
     std::map<Identifier, std::vector<VehiclePtr>> m_stock;
+    IndexStr color_index;
 
 public:
     void print_catalouge()
@@ -159,7 +164,7 @@ public:
     }
     int add_to_stock(Vehicle const &vehicle)
     {
-        add_to_stock(vehicle.m_company , vehicle.m_model , vehicle.m_product_id);
+        add_to_stock(vehicle.m_company, vehicle.m_model, vehicle.m_product_id);
         return 0;
     }
     int amt_in_stock(Company const &company, Model const &model)
@@ -192,7 +197,7 @@ public:
     }
     DBMS(std::ifstream &ifile) : DBMS()
     {
-        if(ifile.peek() == std::ifstream::traits_type::eof())
+        if (ifile.peek() == std::ifstream::traits_type::eof())
             return;
         size_t total_vehicles;
         ifile.read((char *)&total_vehicles, sizeof(size_t));
@@ -204,9 +209,9 @@ public:
 
 int main()
 {
-    std::ofstream ofile("datout.0", std::ios_base::binary);
-    std::ifstream ifile("datin.0" , std::ios_base::binary);
+    std::ifstream ifile("datin.0", std::ios_base::binary);
     DBMS dbms(ifile);
+    ifile.close();
     /*
     dbms.add_to_stock("Honda" , "Civic");
     dbms.add_to_stock("Honda" , "Civic");
@@ -218,5 +223,6 @@ int main()
     */
     dbms.print_catalouge();
     std::cout << dbms.amt_in_stock("Tesla", "Model X");
+    std::ofstream ofile("datout.0", std::ios_base::binary);
     dbms.dump_to_disk(ofile);
 }
