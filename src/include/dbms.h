@@ -1,8 +1,6 @@
 #ifndef DBMS_H
 
 #define DBMS_H
-#include <boost/archive/xml_iarchive.hpp>
-#include <boost/archive/xml_oarchive.hpp>
 #include <boost/multi_index_container.hpp>
 #include <boost/serialization/string.hpp>
 #include <boost/serialization/vector.hpp>
@@ -10,6 +8,8 @@
 #include <boost/serialization/set.hpp>
 #include <boost/serialization/base_object.hpp>
 #include <boost/serialization/nvp.hpp>
+#include <boost/serialization/version.hpp>
+#include <boost/serialization/assume_abstract.hpp>
 
 #include <map>
 #include <set>
@@ -35,8 +35,8 @@ namespace dbms
         std::vector<std::string> m_others;
 
         VehicleBase();
-        VehicleBase(std::string const & , std::string const & , std::vector<std::string> const & );
-        VehicleBase(std::string &&, std::string &&, std::vector<std::string> && );
+        VehicleBase(std::string const & company, std::string const & model , std::vector<std::string> const & others);
+        VehicleBase(std::string && company, std::string && model, std::vector<std::string> && others);
         VehicleBase(VehicleBase const &);
         VehicleBase(VehicleBase &&);
 
@@ -50,17 +50,32 @@ namespace dbms
     protected:
         std::string m_product_id;
 
+    public:
         Vehicle();
-        Vehicle(std::string const & , std::string const & , std::vector<std::string> const & , std::string const &);
-        Vehicle(std::string &&, std::string &&, std::vector<std::string> && , std::string &&);
+        Vehicle(std::string const & company, std::string const & model, std::vector<std::string> const & others, std::string const & product_id);
+        Vehicle(std::string && company, std::string && model, std::vector<std::string> && others, std::string && product_id);
         Vehicle(Vehicle const &);
         Vehicle(Vehicle &&);
+        virtual ~Vehicle();
+
+    private:
+        template <class Archive>
+        void serialize(Archive &ar, const unsigned int version) ;
+
+    };
+    class DBMS
+    {
+        friend class boost::serialization::access;
+        std::vector<Vehicle> m_database;
 
         template <class Archive>
         void serialize(Archive &ar, const unsigned int version) ;
 
-        virtual ~Vehicle();
+    public:
+        DBMS(std::vector<Vehicle> const & vehicle_list);
+        ~DBMS();
     };
 }
+
 
 #endif
