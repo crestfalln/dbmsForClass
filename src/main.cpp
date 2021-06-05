@@ -3,6 +3,7 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <set>
 
 class Vehicle //Protected Class Never to be used outside class DBMS or class Catalouge
 {
@@ -17,8 +18,6 @@ protected:
     using Identifier = std::pair<Company, Model>;
 
 //Main identifing Vars 
-    Company m_company;
-    Model m_model;
     Identifier m_identity;
     std::string m_product_id = "null";
 
@@ -44,8 +43,8 @@ protected:
     }
     std::ofstream &dump_to_disk(std::ofstream &ofile) //Deserailization - Archive write
     {
-        string_write(ofile , m_company);
-        string_write(ofile , m_model);
+        string_write(ofile , m_identity.first);
+        string_write(ofile , m_identity.second);
         string_write(ofile , m_product_id);
         return ofile;
     }
@@ -55,25 +54,29 @@ protected:
     Vehicle(Vehicle const &) = default;
     Vehicle(Vehicle &&) = default;
     Vehicle(std::string const &company, std::string const &model, std::string const &product_id = "null") 
-        : m_company(company), m_model(model), m_identity({m_model, m_company}), m_product_id(product_id){};
-    explicit Vehicle(Identifier const &model_id) 
-        : m_company(model_id.first), m_model(model_id.second), m_identity(model_id){};
+        : m_identity({company, model}), m_product_id(product_id){};
+    Vehicle(Identifier const &model_id) 
+        : m_identity(model_id){};
     Vehicle(std::ifstream &ifile) noexcept //Deserialization - Archive read 
-        : m_company(std::move(string_read(ifile))) , m_model(std::move(string_read(ifile))) ,  m_identity({m_company , m_model}) , m_product_id(std::move(string_read(ifile))) {};
+        :  m_identity({std::move(string_read(ifile)) , std::move(string_read(ifile))} )  , m_product_id(std::move(string_read(ifile))) {};
 
 public: //Public destructor because protected did not work with shared-pointer(some one look into it)
     ~Vehicle() = default;
 };
 
-class Catalouge
+class Catalouge //Maintains a list of all company models in a searchable map
 {
 protected:
     friend class DBMS;
     using Company = Vehicle::Company;
     using Model = Vehicle::Model;
     using Identifier = Vehicle::Identifier;
+    using IdentifierPtr = std::shared_ptr<Identifier>;
     using IdentityHash = std::map<Identifier, Identifier>;
     std::map<Company, IdentityHash> m_catalouge;
+    std::map<Identifier , IdentifierPtr> m_cat_hash;
+    std::map<Company , std::set<IdentifierPtr>> m_company_hash;
+
     void print_catalouge() const
     {
         for (auto const &it : m_catalouge)
@@ -86,35 +89,26 @@ protected:
     }
     void view_cataloge_by_company(Company const &comp) const
     {
-        auto const &find_ret = m_catalouge.find(comp);
-        if (find_ret == m_catalouge.cend())
+        auto const & find_ret_company_hash = m_company_hash.find(comp);
+        if(find_ret_company_hash == m_company_hash.cend())
         {
-            std::cout << "Company not in catalouge";
-            return;
+            std::cout << "Company of Name not in Catalouge";
+            return; 
         }
-        std::cout << find_ret->first << '\n';
-        for (auto const &it : find_ret->second)
-        {
-            std::cout << '\t' << it.second.second << '\n';
-        }
+        std::cout << find_ret_company_hash->first << '\n';
+        for(auto const it : find_ret_company_hash->second)
+            std::cout << '\t' << it.second->second << '\n';
         std::cout.flush();
-        return;
     }
-    int add_to_catalouge(Identifier const &identity)
+
+    void add_to_catalouge(Identifier const &identity)
     {
-        auto const &m_cat_find_ret = m_catalouge.find(identity.first);
-        if (m_cat_find_ret == m_catalouge.cend())
+        auto const & find_ret_cat_hash = m_cat_hash.insert({identity , IdentifierPtr(new Identifier(identity))}); // could be better why store same things twice?
+        if(!find_ret_cat_hash.second)
         {
-            m_catalouge.insert({identity.first, {{identity, identity}}});
-            return 0;
+            auto const & find_ret_comany_hash = m_company_hash.insert({find_ret_cat_hash.first->first.first , {}});
+            find_ret_comany_hash.first->second.insert({find_ret_cat_hash.first->second , find_ret_cat_hash.first->second});
         }
-        auto const &m_cat_model_find_ret = m_cat_find_ret->second.find(identity);
-        if (m_cat_model_find_ret == m_cat_find_ret->second.cend())
-        {
-            m_cat_find_ret->second.insert({identity, identity});
-            return 0;
-        }
-        return 1;
     }
 
     Catalouge(std::map<Company, IdentityHash> &&cat) noexcept
@@ -154,18 +148,11 @@ public:
     {
         m_cat.print_catalouge();
     }
-    int add_to_stock(Company const &company, Model const &model, std::string const &product_id = "null")
+    void add_to_stock(Vehicle const &vehicle)
     {
-        Identifier identity = {company, model};
-        m_cat.add_to_catalouge(identity);
-        auto m_stock_ins_pos = m_stock.insert({identity, {}}).first;
-        m_stock_ins_pos->second.emplace_back(new Vehicle(company, model, product_id));
-        return 0;
-    }
-    int add_to_stock(Vehicle const &vehicle)
-    {
-        add_to_stock(vehicle.m_company, vehicle.m_model, vehicle.m_product_id);
-        return 0;
+        m_cat.add_to_catalouge(vehicle.m_identity);
+        auto m_stock_ins_pos = m_stock.insert({vehicle.m_identity, {}}).first;
+        m_stock_ins_pos->second.push_back(VehiclePtr(new Vehicle(vehicle)));
     }
     int amt_in_stock(Company const &company, Model const &model)
     {
