@@ -14,13 +14,6 @@ namespace dbms
     VehicleBase::~VehicleBase() = default;
 
 // Members VehicleBase
-    template <class Archive>
-    void VehicleBase::serialize(Archive & ar , unsigned const int version)
-    {
-        ar & BOOST_SERIALIZATION_NVP(m_company);
-        ar & BOOST_SERIALIZATION_NVP(m_model);
-        ar & BOOST_SERIALIZATION_NVP(m_others);
-    }
 
     Vehicle::Vehicle(){}
     Vehicle::Vehicle(std::string const & company, std::string const & model, std::vector<std::string> const & others, std::string const & product_id) 
@@ -31,20 +24,9 @@ namespace dbms
     Vehicle::Vehicle(Vehicle &&) = default;
     Vehicle::~Vehicle() = default;
 
-    template <class Archive>
-    void Vehicle::serialize(Archive &ar, const unsigned int version) 
-    {
-        ar & BOOST_SERIALIZATION_BASE_OBJECT_NVP(VehicleBase);
-        ar & BOOST_SERIALIZATION_NVP(m_product_id);
-    }
 
     DBMS::DBMS(std::vector<Vehicle> const & vehicle_list)
         :m_database(vehicle_list) {}
     DBMS::~DBMS() = default;
-    template <class Archive>
-    void DBMS::serialize(Archive & ar , unsigned const int version)
-    {
-        ar & BOOST_SERIALIZATION_NVP(m_database);
-    }
 
 }

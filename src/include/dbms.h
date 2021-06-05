@@ -75,6 +75,29 @@ namespace dbms
         DBMS(std::vector<Vehicle> const & vehicle_list);
         ~DBMS();
     };
+
+    //templates 
+    template <class Archive>
+    void VehicleBase::serialize(Archive & ar , unsigned const int version)
+    {
+        ar & BOOST_SERIALIZATION_NVP(m_company);
+        ar & BOOST_SERIALIZATION_NVP(m_model);
+        ar & BOOST_SERIALIZATION_NVP(m_others);
+    }
+
+    template <class Archive>
+    void Vehicle::serialize(Archive &ar, const unsigned int version) 
+    {
+        ar & BOOST_SERIALIZATION_BASE_OBJECT_NVP(VehicleBase);
+        ar & BOOST_SERIALIZATION_NVP(m_product_id);
+    }
+
+    template <class Archive>
+    void DBMS::serialize(Archive & ar , unsigned const int version)
+    {
+        ar & BOOST_SERIALIZATION_NVP(m_database);
+    }
+    
 }
 
 
