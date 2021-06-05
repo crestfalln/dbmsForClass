@@ -49,6 +49,7 @@ namespace dbms
     {
     protected:
         std::string m_product_id;
+        friend class boost::serialization::access;
 
     public:
         Vehicle();
