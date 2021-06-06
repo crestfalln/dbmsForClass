@@ -1,8 +1,16 @@
-bin/libs/dbms.so: src/libs/dbms.cpp src/include/dbms.h
-	g++ -I src/include -c -o bin/libs/dbms.so src/libs/dbms.cpp
+CC=g++
+CFLAGS=-Isrc/include 
+LFLAGS=-lboost_serialization $(shell wx-config-gtk3 --libs)
+OBJECTS=bin/libs/dbms.o bin/libs/main.o 
 
-bin/libs/main.so: src/main.cpp src/include/dbms.h
-	g++ -I src/include -c -o bin/libs/main.so src/main.cpp
+bin/libs/dbms.o: src/libs/dbms.cpp src/include/dbms.h
+	g++ $(CFLAGS) -c -o $@ $<
 
-all: bin/libs/main.so bin/libs/dbms.so 
-	g++ -o bin/proj.out -l boost_serialization bin/libs/main.so bin/libs/dbms.so 
+bin/libs/main.o: src/main.cpp src/include/dbms.h
+	g++ $(CFLAGS) -c -o $@ $<
+
+bin/libs/%.o: src/libs/%.cpp src/include/%.h
+	$(CC) $(CFLAGS) -c -o $@ $<
+
+all: $(OBJECTS)
+	$(CC) $(LFLAGS) $(CFLAGS) -o bin/proj.out  $^

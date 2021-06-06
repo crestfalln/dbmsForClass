@@ -29,7 +29,7 @@ namespace dbms
         std::string m_company;
         std::string m_model;
         enum {
-            COLOR,
+            COLOR = 0,
             ENGINE
         };
         std::vector<std::string> m_others;
