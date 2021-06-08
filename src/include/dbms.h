@@ -19,12 +19,16 @@
 
 namespace dbms
 {
+    class parsing_error : public std::runtime_error{
+        int m_line_count;
+    public:
+        parsing_error(char * , int line_count);
+    };
+
     class VehicleBase
     {
     protected:
         friend class boost::serialization::access;
-        friend class DBMS;
-        friend class catalouge;
 
         std::string m_company;
         std::string m_model;
@@ -34,7 +38,6 @@ namespace dbms
         };
         std::vector<std::string> m_others;
 
-        VehicleBase();
         VehicleBase(std::string const & company, std::string const & model , std::vector<std::string> const & others);
         VehicleBase(std::string && company, std::string && model, std::vector<std::string> && others);
         VehicleBase(VehicleBase const &);
@@ -48,15 +51,21 @@ namespace dbms
     class Vehicle : public VehicleBase
     {
     protected:
-        std::string m_product_id;
         friend class boost::serialization::access;
+        friend class DBMS;
+        friend class catalouge;
 
-    public:
-        Vehicle();
+        std::string m_product_id;
+
         Vehicle(std::string const & company, std::string const & model, std::vector<std::string> const & others, std::string const & product_id);
         Vehicle(std::string && company, std::string && model, std::vector<std::string> && others, std::string && product_id);
+        Vehicle& operator=(Vehicle const &);
+        Vehicle& operator=(Vehicle &&);
+        int add_from_file(std::istream &);
+
+    public:
         Vehicle(Vehicle const &);
-        Vehicle(Vehicle &&);
+        Vehicle(Vehicle &&) ;
         virtual ~Vehicle();
 
     private:
@@ -67,13 +76,29 @@ namespace dbms
     class DBMS
     {
         friend class boost::serialization::access;
-        std::vector<Vehicle> m_database;
+        std::set<Vehicle> m_database;
+        u_int8_t 
+            f_change : 1 = 0,
+            f_kill : 1 = 0,
+
+
 
         template <class Archive>
         void serialize(Archive &ar, const unsigned int version) ;
 
     public:
-        DBMS(std::vector<Vehicle> const & vehicle_list);
+        static Vehicle make_vehicle(std::string const & company, std::string const & model, std::vector<std::string> const & others, std::string const & product_id);
+        static Vehicle make_vehicle(std::string && company, std::string && model, std::vector<std::string> && others, std::string && product_id);
+        DBMS();
+        void add(Vehicle && vehicle);
+        int add_from_file(std::istream & ifile);
+        int add_from_file(std::string filepath);
+        void import_from_xml(std::string filepath);
+        void export_to_xml(std::string filepath);
+        DBMS(std::set<Vehicle> const & vehicle_list);
+        DBMS(std::set<Vehicle> && vehicle_list);
+        DBMS(std::initializer_list<Vehicle> vehicle_list);
+        DBMS(std::istream & ifile);
         ~DBMS();
     };
 
