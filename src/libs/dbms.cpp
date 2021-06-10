@@ -5,83 +5,118 @@
 
 namespace dbms
 {
-    parsing_error::parsing_error(char *e , int line_count = 0) : runtime_error(e) , m_line_count(line_count) {}
+    parsing_error::parsing_error(const char *e, int line_count = 0) : runtime_error(e), m_line_count(line_count) {}
 
     // Constructors VehicleBase
-    VehicleBase::VehicleBase(std::string const &company, std::string const &model, std::vector<std::string> const &others)
-        : m_company(company), m_model(model), m_others(others) {}
-    VehicleBase::VehicleBase(std::string &&company, std::string &&model, std::vector<std::string> &&others)
-        : m_company(std::move(company)), m_model(std::move(model)), m_others(std::move(others)) {}
+    VehicleBase::VehicleBase(std::string const &company, std::string const &model)
+        : m_company(company), m_model(model) {}
+    VehicleBase::VehicleBase(std::string &&company, std::string &&model)
+        : m_company(std::move(company)), m_model(std::move(model)) {}
     VehicleBase::VehicleBase(VehicleBase const &) = default;
     VehicleBase::VehicleBase(VehicleBase &&) = default;
     VehicleBase::~VehicleBase() = default;
+    //
+    //
 
     // Members VehicleBase
-
-
-
+    //
+    //
+    //
+    //
 
     // Constructors Vehicle
-    Vehicle::Vehicle(std::string const &company = "", std::string const &model = "", std::vector<std::string> const &others = {}, std::string const &product_id = "")
-        : VehicleBase(company, model, others), m_product_id(product_id) {}
+    Vehicle::Vehicle(std::string const &company, std::string const &model, std::vector<std::string> const &others = {}, std::string const &product_id = "")
+        : VehicleBase(company, model), m_others(others), m_product_id(product_id) {}
     Vehicle::Vehicle(std::string &&company = "", std::string &&model = "", std::vector<std::string> &&others = {}, std::string &&product_id = "")
-        : VehicleBase(std::move(company), std::move(model), std::move(others)), m_product_id(std::move(product_id)) {}
-    Vehicle::Vehicle(Vehicle const &vehicle) = default;
-    Vehicle::Vehicle(Vehicle &&vehicle) = default;
+        : VehicleBase(std::move(company), std::move(model)), m_others(std::move(others)), m_product_id(std::move(product_id)) {}
+    Vehicle::Vehicle(Vehicle const &vehicle)
+        : VehicleBase(vehicle), m_others(vehicle.m_others), m_product_id(vehicle.m_product_id) {}
+    Vehicle::Vehicle(Vehicle &&vehicle)
+        : VehicleBase(std::move(vehicle)), m_others(std::move(vehicle.m_others)), m_product_id(std::move(vehicle.m_product_id)) {}
     Vehicle::~Vehicle() = default;
-
+    //
+    //
 
     // Members Vehicle
-    int Vehicle::add_from_file(std::istream &is)
+    int Vehicle::add_from_file(std::stringstream &is, int al_read)
     {
         int line_count = 0;
+        const int mem_count = 4;
+        int mem_loaded = 0;
+        int other_attr_loaded = 0;
+        bool tab_flag = 0;
+        bool break_flag = 0;
+        std::string cur_line;
+        auto is_tab = [&]()
+        {
+            int spaces = 0;
+            for (auto &it : cur_line)
+            {
+                if (it == '\t')
+                {
+                    cur_line = cur_line.substr(1);
+                    return true;
+                }
+                if (it == ' ')
+                    spaces++;
+                else
+                    break;
+            }
+            if (spaces >= 4)
+            {
+                cur_line = cur_line.substr(spaces);
+                return true;
+            }
+            return false;
+        };
+
         while (!is.eof())
         {
-            const int mem_count = 4;
-            int mem_loaded = 0;
-            int other_attr_loaded = 0;
-            bool tab_flag = 0;
-            bool break_flag = 0;
-            std::string cur_line;
-
-            for (char c = is.get(); c != '\n'; c = is.get())
+            cur_line.clear();
+            for (char c = is.get(); c != '\n' && c != EOF; c = is.get())
             {
                 cur_line.push_back(c);
             }
-            if (cur_line[0] == '\t')
-                tab_flag = 1;
-            else
-                tab_flag = 0;
-            if(cur_line.empty())
+            if (cur_line.empty())
                 break_flag = 1;
             else
                 break_flag = 0;
             line_count++;
 
+            if (*cur_line.cbegin() == ';' && *(cur_line.cend() - 1) == ';')
+                continue;
+
             if (mem_loaded < mem_count)
             {
+                if (tab_flag == 1)
+                {
+                    tab_flag = is_tab();
+                    if (tab_flag != 1)
+                        mem_loaded++;
+                }
+                else
+                    tab_flag = is_tab();
+
                 switch (mem_loaded)
                 {
                 case 0:
-                    if(tab_flag | break_flag)
-                        throw parsing_error("Missing Comany field" , line_count);
+                    if (tab_flag | break_flag)
+                        throw parsing_error("Missing Comany field", line_count + al_read);
                     m_company = cur_line;
                     mem_loaded++;
                     break;
                 case 1:
-                    if(tab_flag | break_flag)
-                        throw parsing_error("Missing Comany field" , line_count);
+                    if (tab_flag | break_flag)
+                        throw parsing_error("Missing Comany field", line_count + al_read);
                     m_model = cur_line;
                     mem_loaded++;
                     break;
                 case 2:
                     if (tab_flag)
                     {
-                        m_others[other_attr_loaded] = cur_line.substr(1);
+                        m_others.push_back(cur_line);
                         other_attr_loaded++;
                     }
-                    else
-                        mem_loaded++;
                     break;
                 case 3:
                     m_product_id = cur_line;
@@ -97,19 +132,108 @@ namespace dbms
         return line_count;
     }
 
+    int Vehicle::add_to_file_buff(std::stringstream &ofile)
+    {
+        const int mem_count = 4;
+        int mem_written = 0;
+        int other_attr_written = 0;
 
-
+        if (mem_written < mem_count)
+        {
+            switch (mem_written)
+            {
+            case 0:
+                ofile << m_company << '\t';
+                mem_written++;
+                break;
+            case 1:
+                ofile << m_model << '\t';
+                mem_written++;
+                break;
+            case 2:
+                for (auto const &iter : m_others)
+                {
+                    ofile << '\t' << iter << '\n';
+                    other_attr_written++;
+                }
+                mem_written++;
+                break;
+            case 3:
+                ofile << m_product_id << '\t';
+                mem_written++;
+                break;
+            }
+        }
+    }
+    //
+    //
+    //
+    //
 
     //Constructors DBMS
-    DBMS::DBMS(std::set<Vehicle> const &vehicle_list)
-        : m_database(vehicle_list) {}
-    DBMS::DBMS(std::set<Vehicle> &&vehicle_list)
-        : m_database(std::move(vehicle_list)){};
     DBMS::DBMS() = default;
     DBMS::~DBMS() = default;
-
+    //
+    //
 
     //Members DBMS
+    void DBMS::add(Vehicle &&vehicle)
+    {
+        auto ret = m_database_data.emplace(new Vehicle(std::move(vehicle)));
+        m_id_index.emplace(ret.first->get()->m_product_id, *ret.first);
+        m_company_index.emplace(ret.first->get()->m_company , *ret.first);
+        m_model_index.emplace(ret.first->get()->m_model , *ret.first);
+        m_color_index.emplace(ret.first->get()->m_others[Vehicle::COLOR] , *ret.first);
+    }
+    void DBMS::print_stock() const
+    {
+        int pos = 1;
+        for (auto &it : m_database_data)
+        {
+            std::cout << "Entry " << pos << '\n'
+                      << "\t"
+                      << "Company Name: " << it->m_company << "\n"
+                      << "\t"
+                      << "Model Name: " << it->m_model << "\n"
+                      << "\t"
+                      << "Other Attributes: "
+                      << "\n";
+            for (auto const &it2 : it->m_others)
+                std::cout << "\t\t" << it2 << "\n";
+            std::cout << "\t"
+                      << "Vehicle ID: " << it->m_product_id << "\n";
+            pos++;
+        }
+    }
+    int DBMS::add_from_file(std::istream &ifile)
+    {
+        int lines_read = 0;
+        std::vector<Vehicle> tmp_vec;
+        std::stringstream temp_ss;
+        temp_ss << ifile.rdbuf();
+        ifile.~basic_istream();
+        while (!temp_ss.eof())
+        {
+            Vehicle temp;
+            lines_read += temp.add_from_file(temp_ss, lines_read);
+            tmp_vec.push_back(std::move(temp));
+        }
+        for (auto &it : tmp_vec)
+            add(std::move(it));
+        return lines_read;
+    }
+    int DBMS::add_from_file(std::string filepath)
+    {
+        std::ifstream ifile(filepath);
+        if (ifile.peek() == EOF)
+            throw parsing_error("EmptyFile");
+        return add_from_file(ifile);
+    }
+
+    //
+    //
+
+    //Static Members
     Vehicle DBMS::make_vehicle(std::string const &company, std::string const &model, std::vector<std::string> const &others, std::string const &product_id = "NULL")
     {
         return Vehicle(company, model, others, product_id);
@@ -118,10 +242,5 @@ namespace dbms
     Vehicle DBMS::make_vehicle(std::string &&company, std::string &&model, std::vector<std::string> &&others, std::string &&product_id = "NULL")
     {
         return Vehicle(std::move(company), std::move(model), std::move(others), std::move(product_id));
-    }
-
-    int DBMS::add_from_file(std::istream & is)
-    {
-        int linecount
     }
 }
