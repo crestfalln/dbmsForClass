@@ -126,6 +126,7 @@ namespace dbms
             f_alter = 0,
             f_save = 1,
             f_file = 0,
+            f_buf_ready = 0,
             f_buf_flush = 0;
 
         //Boost serialization template function; will be removed soon
@@ -143,6 +144,8 @@ namespace dbms
         int import_from_file(std::string filepath);
         void write_to_buf(std::stringstream& outStream) ;
         void write_to_buf() ;
+        void write_buf_to_file(std::string filepath);
+        void write_buf_to_file();
         void sync();
 
         //Uses boost serailization; will be removed soon

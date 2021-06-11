@@ -74,9 +74,7 @@ namespace dbms
 
         while (!is.eof())
         {
-            cur_line.clear();
-            for (char c = is.get(); c != '\n' && c != EOF; c = is.get())
-            {
+            cur_line.clear(); for (char c = is.get(); c != '\n' && c != EOF; c = is.get()) {
                 cur_line.push_back(c);
             }
             if (cur_line.empty())
@@ -248,16 +246,33 @@ namespace dbms
             throw parsing_error("EmptyFile");
         return import_from_file(ifile);
     }
-    void DBMS::write_to_buf(std::stringstream &outStream)
-    {
-        std::stringstream outStream;
-        for(auto const & iter : m_database_data)
-            iter->add_to_file_buff(outStream);
-    }
 
     void DBMS::write_to_buf()
     {
-        write_to_buf(m_file_buf);
+        while(!(f_buf_flush | f_exit)){};
+        f_buf_ready = 0;
+        for(auto const & iter : m_database_data)
+            iter->add_to_file_buff(m_file_buf);
+        f_buf_ready = 1;
+    }
+
+    void DBMS::write_buf_to_file(std::string filepath)
+    {
+        while (!(f_buf_ready | f_exit))
+        {};
+        {
+            f_buf_flush = 1;
+            std::ofstream ofile(filepath); 
+            ofile << m_file_buf.rdbuf();
+            f_buf_flush = 0;
+        }
+    }
+    void DBMS::write_buf_to_file()
+    {
+        write_buf_to_file(m_temp_filepath);
+    }
+    void DBMS::sync()
+    {
     }
 
 
