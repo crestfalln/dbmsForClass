@@ -7,7 +7,8 @@
 int main()
 {
     dbms::DBMS dbms;
-    dbms.add_from_file("test2.txt");
+    dbms.add_from_file("test.txt");
+    dbms.print_stock();
     std::cin.get();
     return 0;
 }
