@@ -1,11 +1,5 @@
 #ifndef DBMS_H
-
 #define DBMS_H
-#include <boost/serialization/string.hpp>
-#include <boost/serialization/vector.hpp>
-#include <boost/serialization/base_object.hpp>
-#include <boost/serialization/nvp.hpp>
-#include <boost/serialization/version.hpp>
 
 #include <map>
 #include <unordered_map>
@@ -38,7 +32,6 @@ namespace dbms
     class VehicleBase
     {
     protected:
-        friend class boost::serialization::access; //Boost serialization; will be removed
 
         std::string m_company;
         std::string m_model;
@@ -48,8 +41,6 @@ namespace dbms
         VehicleBase(VehicleBase const &);
         VehicleBase(VehicleBase &&);
 
-        template <class Archive>
-        void serialize(Archive &, const unsigned int);
 
         virtual ~VehicleBase();
     };
@@ -63,7 +54,6 @@ namespace dbms
         using PtrSh = std::shared_ptr<Vehicle>;
         using PtrWk = std::weak_ptr<Vehicle>;
 
-        friend class boost::serialization::access; //Boost serailization; will be removed soon
         friend class DBMS;
 
         enum
@@ -88,8 +78,6 @@ namespace dbms
         virtual ~Vehicle();
 
     private:
-        template <class Archive>
-        void serialize(Archive &ar, const unsigned int version);
     };
     //
     //
@@ -105,7 +93,6 @@ namespace dbms
         using DataSetIter = DataSet::iterator;
         using ConstDataSetIter = DataSet::const_iterator;
 
-        friend class boost::serialization::access; //Boost serialization; will be removed in favor of in house serializer
 
         DataSet m_database_data; //All Data uses shared pointers
         std::stringstream m_file_buf; //Acts as buffer for things to be written to file
@@ -173,28 +160,6 @@ namespace dbms
     //
     //
     //
-    //Boost serialization templates; will be removed soon
-    template <class Archive>
-    void VehicleBase::serialize(Archive &ar, unsigned const int version)
-    {
-        ar &BOOST_SERIALIZATION_NVP(m_company);
-        ar &BOOST_SERIALIZATION_NVP(m_model);
-    }
-
-    template <class Archive>
-    void Vehicle::serialize(Archive &ar, const unsigned int version)
-    {
-        ar &BOOST_SERIALIZATION_BASE_OBJECT_NVP(VehicleBase);
-        ar &BOOST_SERIALIZATION_NVP(m_others);
-        ar &BOOST_SERIALIZATION_NVP(m_product_id);
-    }
-
-    template <class Archive>
-    void DBMS::serialize(Archive &ar, unsigned const int version)
-    {
-        ar &BOOST_SERIALIZATION_NVP(m_database_data);
-    }
-
 }
 
 #endif
