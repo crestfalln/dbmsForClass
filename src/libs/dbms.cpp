@@ -2,10 +2,12 @@
 #include <iostream>
 #include <fstream>
 #include <sstream>
+#include <filesystem>
 
 namespace dbms
 {
     parsing_error::parsing_error(const char *e, int line_count = 0) : runtime_error(e), m_line_count(line_count) {}
+    tmp_file_exists::tmp_file_exists(const char *e) : runtime_error(e) {};
 
     // Constructors VehicleBase
     VehicleBase::VehicleBase(std::string const &company, std::string const &model)
@@ -38,7 +40,7 @@ namespace dbms
     //
 
     // Members Vehicle
-    int Vehicle::add_from_file(std::stringstream &is, int al_read)
+    int Vehicle::import_from_file(std::stringstream &is, int al_read)
     {
         int line_count = 0;
         const int mem_count = 4;
@@ -72,9 +74,7 @@ namespace dbms
 
         while (!is.eof())
         {
-            cur_line.clear();
-            for (char c = is.get(); c != '\n' && c != EOF; c = is.get())
-            {
+            cur_line.clear(); for (char c = is.get(); c != '\n' && c != EOF; c = is.get()) {
                 cur_line.push_back(c);
             }
             if (cur_line.empty())
@@ -132,7 +132,7 @@ namespace dbms
         return line_count;
     }
 
-    int Vehicle::add_to_file_buff(std::stringstream &ofile)
+    void Vehicle::add_to_file_buff(std::stringstream &ofile)
     {
         const int mem_count = 4;
         int mem_written = 0;
@@ -172,7 +172,24 @@ namespace dbms
 
     //Constructors DBMS
     DBMS::DBMS() = default;
-    DBMS::~DBMS() = default;
+    DBMS::DBMS(std::string filepath) noexcept(false) : m_filepath(filepath) , m_temp_filepath("."+ filepath +".temp")
+    {
+        if(std::filesystem::exists(m_temp_filepath))
+            throw dbms::tmp_file_exists("Tempfile already exists. Maybe program was not closed properly.");
+        import_from_file(filepath);
+        f_file = 1;
+    }
+    DBMS::~DBMS()
+    {
+        f_exit = 1;
+        m_futures_void.~vector();
+        sync();
+        if(f_save & f_file)
+        {
+            std::rename(m_temp_filepath.c_str() , m_filepath.c_str());
+        }
+        std::cout << "Exited";
+    }
     //
     //
 
@@ -205,7 +222,7 @@ namespace dbms
             pos++;
         }
     }
-    int DBMS::add_from_file(std::istream &ifile)
+    int DBMS::import_from_file(std::istream &ifile)
     {
         int lines_read = 0;
         std::vector<Vehicle> tmp_vec;
@@ -215,20 +232,49 @@ namespace dbms
         while (!temp_ss.eof())
         {
             Vehicle temp;
-            lines_read += temp.add_from_file(temp_ss, lines_read);
+            lines_read += temp.import_from_file(temp_ss, lines_read);
             tmp_vec.push_back(std::move(temp));
         }
         for (auto &it : tmp_vec)
             add(std::move(it));
         return lines_read;
     }
-    int DBMS::add_from_file(std::string filepath)
+    int DBMS::import_from_file(std::string filepath)
     {
         std::ifstream ifile(filepath);
         if (ifile.peek() == EOF)
             throw parsing_error("EmptyFile");
-        return add_from_file(ifile);
+        return import_from_file(ifile);
     }
+
+    void DBMS::write_to_buf()
+    {
+        while(!(f_buf_flush | f_exit)){};
+        f_buf_ready = 0;
+        for(auto const & iter : m_database_data)
+            iter->add_to_file_buff(m_file_buf);
+        f_buf_ready = 1;
+    }
+
+    void DBMS::write_buf_to_file(std::string filepath)
+    {
+        while (!(f_buf_ready | f_exit))
+        {};
+        {
+            f_buf_flush = 1;
+            std::ofstream ofile(filepath); 
+            ofile << m_file_buf.rdbuf();
+            f_buf_flush = 0;
+        }
+    }
+    void DBMS::write_buf_to_file()
+    {
+        write_buf_to_file(m_temp_filepath);
+    }
+    void DBMS::sync()
+    {
+    }
+
 
     //
     //

@@ -1,6 +1,6 @@
 CC=g++
 CFLAGS=-Isrc/include $(shell wx-config-gtk3 --cxxflags) -g
-LFLAGS=-lboost_serialization $(shell wx-config-gtk3 --libs)
+LFLAGS= $(shell wx-config-gtk3 --libs) 
 OBJECTS=bin/libs/dbms.o bin/libs/main.o bin/libs/ui.o
 
 bin/libs/%.o: src/libs/%.cpp src/include/%.h
