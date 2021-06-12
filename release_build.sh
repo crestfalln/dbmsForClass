@@ -1,3 +1,3 @@
 #!/bin/zsh
 
-cd build/release ; make
+cmake --build build/release

@@ -1,3 +1,3 @@
 #!/bin/zsh
 
-cd build/debug ; make
+cmake --build build/debug  
