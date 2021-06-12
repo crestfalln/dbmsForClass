@@ -70,7 +70,7 @@ namespace dbms
         Vehicle &operator=(Vehicle const &);
         Vehicle &operator=(Vehicle &&) noexcept;
         int import_from_file(std::stringstream &, int);
-        int add_to_file_buff(std::stringstream &);
+        void add_to_file_buff(std::stringstream &);
 
     public:
         Vehicle(Vehicle const &);
@@ -116,9 +116,6 @@ namespace dbms
             f_buf_ready = 0,
             f_buf_flush = 0;
 
-        //Boost serialization template function; will be removed soon
-        template <class Archive>
-        void serialize(Archive &ar, const unsigned int version);
 
     public:
         static Vehicle make_vehicle(std::string const &company, std::string const &model, std::vector<std::string> const &others, std::string const &product_id);

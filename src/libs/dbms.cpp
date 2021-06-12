@@ -132,7 +132,7 @@ namespace dbms
         return line_count;
     }
 
-    int Vehicle::add_to_file_buff(std::stringstream &ofile)
+    void Vehicle::add_to_file_buff(std::stringstream &ofile)
     {
         const int mem_count = 4;
         int mem_written = 0;
