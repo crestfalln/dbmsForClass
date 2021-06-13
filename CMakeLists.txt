@@ -11,6 +11,7 @@ find_package(Threads REQUIRED)
 
 include_directories(src/include)
 add_subdirectory(src/libs)
+add_subdirectory(src/deps)
 set(EXEC "${PROJECT_NAME}.out")
 add_executable("${EXEC}" src/main.cpp)
 
