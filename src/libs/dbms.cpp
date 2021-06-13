@@ -83,8 +83,11 @@ namespace dbms
                 break_flag = 0;
             line_count++;
 
-            if (*cur_line.cbegin() == ';' && *(cur_line.cend() - 1) == ';')
-                continue;
+            if (!cur_line.empty())
+            {
+                if (*cur_line.cbegin() == ';' && *(cur_line.cend() - 1) == ';')
+                    continue;
+            }
 
             if (mem_loaded < mem_count)
             {
@@ -228,7 +231,6 @@ namespace dbms
         std::vector<Vehicle> tmp_vec;
         std::stringstream temp_ss;
         temp_ss << ifile.rdbuf();
-        ifile.~basic_istream();
         while (!temp_ss.eof())
         {
             Vehicle temp;
