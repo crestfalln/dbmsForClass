@@ -110,7 +110,7 @@ namespace dbms
                     break;
                 case 1:
                     if (tab_flag | break_flag)
-                        throw parsing_error("Missing Comany field", line_count + al_read);
+                        throw parsing_error("Missing Model field", line_count + al_read);
                     m_model = cur_line;
                     mem_loaded++;
                     break;
@@ -122,6 +122,8 @@ namespace dbms
                     }
                     break;
                 case 3:
+                    if (tab_flag | break_flag)
+                        throw parsing_error("Missing Id field", line_count + al_read);
                     m_product_id = cur_line;
                     mem_loaded++;
                     break;
@@ -199,6 +201,11 @@ namespace dbms
     //Members DBMS
     void DBMS::add(Vehicle &&vehicle)
     {
+        std::unique_lock<std::mutex> lock(m_mutex);
+        if(m_id_index.end() ==  m_id_index.find(vehicle.m_product_id))
+        {
+            throw bad_add("Vehicle with the same ID found. Stop insertion.");
+        }
         auto ret = m_database_data.emplace(new Vehicle(std::move(vehicle)));
         m_id_index.emplace(ret.first->get()->m_product_id, *ret.first);
         m_company_index.emplace(ret.first->get()->m_company , *ret.first);
@@ -238,7 +245,16 @@ namespace dbms
             tmp_vec.push_back(std::move(temp));
         }
         for (auto &it : tmp_vec)
-            add(std::move(it));
+        {
+            try
+            {
+                add(std::move(it));
+            }
+            catch(const bad_add& e)
+            {
+                throw e;
+            }
+        }
         return lines_read;
     }
     int DBMS::import_from_file(std::string filepath)
@@ -266,6 +282,7 @@ namespace dbms
             f_buf_flush = 1;
             std::ofstream ofile(filepath); 
             ofile << m_file_buf.rdbuf();
+            ofile.flush();
             f_buf_flush = 0;
         }
     }
@@ -276,18 +293,23 @@ namespace dbms
     void DBMS::sync()
     {
     }
+    
+    void DBMS::remove_vehicle(Vehicle::PtrWk & ptr)
+    {
+
+    }
 
 
     //
     //
 
     //Static Members
-    Vehicle DBMS::make_vehicle(std::string const &company, std::string const &model, std::vector<std::string> const &others, std::string const &product_id = "NULL")
+    Vehicle DBMS::make_vehicle(std::string const &company, std::string const &model, std::vector<std::string> const &others, std::string const &product_id)
     {
         return Vehicle(company, model, others, product_id);
     }
 
-    Vehicle DBMS::make_vehicle(std::string &&company, std::string &&model, std::vector<std::string> &&others, std::string &&product_id = "NULL")
+    Vehicle DBMS::make_vehicle(std::string &&company, std::string &&model, std::vector<std::string> &&others, std::string &&product_id)
     {
         return Vehicle(std::move(company), std::move(model), std::move(others), std::move(product_id));
     }

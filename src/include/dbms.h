@@ -87,12 +87,18 @@ namespace dbms
         //Useful Aliases
         using IndexStr = std::unordered_multimap<std::string, Vehicle::PtrWk>;
         using IndexIter = IndexStr::iterator;
+        using IndexIterPair = std::pair<IndexIter , IndexIter>;
         using ConstIndexIter = IndexStr::const_iterator;
         using IndexStrTwo = std::unordered_multimap<std::pair<std::string, std::string>, Vehicle::PtrWk>;
         using DataSet = std::unordered_set<Vehicle::PtrSh>;
         using DataSetIter = DataSet::iterator;
         using ConstDataSetIter = DataSet::const_iterator;
 
+        //Execptions
+        class bad_add : public std::runtime_error
+        {
+            using std::runtime_error::runtime_error;
+        };
 
         DataSet m_database_data; //All Data uses shared pointers
         std::stringstream m_file_buf; //Acts as buffer for things to be written to file
@@ -104,7 +110,7 @@ namespace dbms
         //Indexes for fast searching - unindexed search could work too - someone look into it
         IndexStr m_company_index;
         IndexStr m_model_index;
-        IndexStr m_id_index;
+        std::unordered_map<std::string, Vehicle::PtrWk> m_id_index;
         IndexStr m_color_index;
 
         //Flags for synchronising async calls; better ways should be interrogated
@@ -116,6 +122,7 @@ namespace dbms
             f_buf_ready = 0,
             f_buf_flush = 0;
 
+        std::mutex m_mutex;
 
     public:
         static Vehicle make_vehicle(std::string const &company, std::string const &model, std::vector<std::string> const &others, std::string const &product_id);
@@ -146,6 +153,12 @@ namespace dbms
         void remove_vehicle(IndexIter);
         void remove_vehicle(Vehicle::PtrSh &);
         void remove_vehicle(Vehicle::PtrWk &);
+
+        //Finding Stuff
+        IndexIterPair find_by_company(std::string const & company);
+        IndexIterPair find_by_model(std::string const & model);
+        IndexIterPair find_by_color(std::string const & color);
+        IndexIterPair find_by_id(std::string const & id);
 
         //Various Constructors
         DBMS(std::vector<Vehicle> const &vehicle_list);
