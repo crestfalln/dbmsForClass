@@ -14,4 +14,4 @@ add_subdirectory(src/libs)
 set(EXEC "${PROJECT_NAME}.out")
 add_executable("${EXEC}" src/main.cpp)
 
-target_link_libraries(${EXEC} PUBLIC dbms PUBLIC ui PUBLIC Threads::Threads)
+target_link_libraries(${EXEC} PUBLIC dbms PUBLIC Threads::Threads)
