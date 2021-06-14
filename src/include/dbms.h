@@ -139,10 +139,6 @@ namespace dbms
         void write_buf_to_file();
         void sync();
 
-        //Uses boost serailization; will be removed soon
-        void import_from_xml(std::string filepath);
-        void export_to_xml(std::string filepath);
-
         void print_stock() const;
         void alter_vehicle(DataSetIter);
         void alter_vehicle(IndexIter);

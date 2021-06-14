@@ -202,7 +202,7 @@ namespace dbms
     void DBMS::add(Vehicle &&vehicle)
     {
         std::unique_lock<std::mutex> lock(m_mutex);
-        if(m_id_index.end() ==  m_id_index.find(vehicle.m_product_id))
+        if(m_id_index.end() !=  m_id_index.find(vehicle.m_product_id))
         {
             throw bad_add("Vehicle with the same ID found. Stop insertion.");
         }
